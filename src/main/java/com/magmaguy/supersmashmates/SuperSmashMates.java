@@ -2,11 +2,11 @@ package com.magmaguy.supersmashmates;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.logging.Level;
 import org.bukkit.Bukkit;
 import static org.bukkit.Bukkit.broadcastMessage;
 import org.bukkit.Effect;
 import static org.bukkit.GameMode.CREATIVE;
+import org.bukkit.Location;
 import org.bukkit.entity.Entity;
 import static org.bukkit.entity.EntityType.PLAYER;
 import org.bukkit.entity.Player;
@@ -39,15 +39,23 @@ import org.bukkit.util.Vector;
 //creepeheal's dev has been contacted about it, check if he's responded later
 public class SuperSmashMates extends JavaPlugin implements Listener{
     
-    ArrayList<String> playerLives = new ArrayList(175);
-    ArrayList<Integer> playerScore = new ArrayList(175);
+    HashMap<Player, Integer> playerScore = new HashMap<Player, Integer>();
     ArrayList<String> dashCooldown = new ArrayList(175);
     HashMap<Player, Boolean> playerGroundTouch = new HashMap<Player, Boolean>();
     HashMap<Player, Integer> playerHP = new HashMap<Player, Integer>();
     
+    //Player hit lists
+    HashMap<Player, Boolean> playerHit = new HashMap<Player, Boolean>();
+    HashMap<Player, Location> playerLocation1 = new HashMap<Player, Location>();
+    HashMap<Player, Location> playerLocation2 = new HashMap<Player, Location>();
+    HashMap<Player, Boolean> playerHitInitialCooldown = new HashMap<Player, Boolean>();
+    HashMap<Player, Boolean> playerHitCooldownConfirmation = new HashMap<Player, Boolean>();
+    
+    //Scoreboards
     Team team;
     Scoreboard board;
     Scoreboard levelBoard;
+    
     
     //Determine behaviour on startup
     @Override
@@ -57,11 +65,13 @@ public class SuperSmashMates extends JavaPlugin implements Listener{
         
     }
     
+    
     //Determine behaviour on shutdown
     @Override
     public void onDisable(){
         getLogger().info("Super Smash Mates - Disabled!");
     }
+    
     
     @EventHandler
     public void PlayerMaxHealth(PlayerLoginEvent event){
@@ -81,10 +91,8 @@ public class SuperSmashMates extends JavaPlugin implements Listener{
                 
                 player.setAllowFlight(true);
                 
-                //Handle lives
-                playerLives.add(player.getName());
-                int playerIndex = playerLives.indexOf(player.getName());
-                playerScore.add(playerIndex, 0);
+                //Handle deathScore
+                playerScore.put(player, 0);
                 
                 //Handle initial XP
                 player.setLevel(0);
@@ -112,20 +120,14 @@ public class SuperSmashMates extends JavaPlugin implements Listener{
 
     }
     
+    
     @EventHandler
     public void PlayerLogOffHandler(PlayerQuitEvent event){
         
         Player player = event.getPlayer();
         
-        if (playerLives.contains(player.getName())){
-            
-            int playerIndex = playerLives.indexOf(player.getName());
-            playerLives.remove(playerIndex);
-            playerScore.remove(playerIndex);
-            
-            playerHP.remove(player);
-            
-        }
+        playerScore.remove(player);
+        playerHP.remove(player);
         
     }
     
@@ -154,7 +156,7 @@ public class SuperSmashMates extends JavaPlugin implements Listener{
     
     
     @EventHandler
-    public void HitHandler(EntityDamageByEntityEvent event){
+    public void onHit(EntityDamageByEntityEvent event){
         
         Entity potentialPlayer = event.getEntity();
         
@@ -167,59 +169,49 @@ public class SuperSmashMates extends JavaPlugin implements Listener{
           
           if (potentialPlayerDamager.getType().equals(PLAYER)){
               
-              event.setDamage(EntityDamageEvent.DamageModifier.BASE, 0);
-            
               //increment level
-              int currentLevel = victim.getLevel();
-              int newLevel = currentLevel + 1;
-              victim.setLevel(newLevel);
+              victim.setLevel(victim.getLevel() + 1);
               
               //knockback handler
               Player victimizer = (Player) potentialPlayerDamager;
               
-              Vector knockbackDirection = victimizer.getEyeLocation().getDirection();
-              //broadcastMessage("Pushback direction: " + knockbackDirection);
+              Location victimizerLocation = victimizer.getLocation();
+              Location victimLocation = victim.getLocation();
               
-              double Formula1 = 0.1 * victim.getLevel();
-              double Formula2 = 2.0;
-              double Formula3 = Math.pow(Formula1, Formula2);
+              Double lengthX = victimLocation.getX() - victimizerLocation.getX();
+              Double lengthY = victimLocation.getY() - victimizerLocation.getY();
+              Double lengthZ = victimLocation.getZ() - victimizerLocation.getZ();
               
-              knockbackDirection.multiply(Formula3 * 3);
-              victim.setVelocity(knockbackDirection);
+              Double magnitude = Math.sqrt(Math.pow(lengthX, 2) + Math.pow(lengthY, 2) + Math.pow(lengthZ, 2));
               
-              //and now for the tricky part
-              //explosion handler
-
-              new BukkitRunnable(){
-                  
-                  @Override
-                  public void run() {
-                      
-                      if(Math.abs(victim.getVelocity().getX()) < 0.000001 &&
-                              Math.abs(victim.getVelocity().getZ()) < 0.000001) //victim.isOnGround()
-                      {
-                          
-                          float Formula3Float = (float) Formula3;
-                          
-                          victim.getWorld().createExplosion(victim.getLocation(), Formula3Float);
-                          
-                          cancel();
-                          
-                      }
-                  }
-                  
-              }.runTaskLater(this, 10L);
+              Double normalizedX = lengthX / Math.abs(magnitude);
+              Double normalizedY = lengthY / Math.abs(magnitude);
+              Double normalizedZ = lengthZ / Math.abs(magnitude);
+              
+              Vector normalizedVector = new Vector(normalizedX, normalizedY, normalizedZ);
+              double algorithm = Math.pow(0.1 * victim.getLevel(), 2);
+              
+              victim.setVelocity(normalizedVector.multiply(algorithm));
+              
+              event.setDamage(EntityDamageEvent.DamageModifier.BASE, 0);
               
           }
-           
-       } 
+          
+          if (playerHit.get(victim) == null || playerHit.get(victim) == false){
+              
+              playerHit.put(victim, true);
+              playerLocation1.put(victim, victim.getLocation());
+              
+          }
+          
+       }
         
     }
     
     
     //Dash move
     @EventHandler
-    public void Dash(PlayerToggleSneakEvent event){
+    public void onSneak(PlayerToggleSneakEvent event){
         
         Player player = event.getPlayer();
         
@@ -231,8 +223,6 @@ public class SuperSmashMates extends JavaPlugin implements Listener{
             Vector eyeVector = player.getEyeLocation().getDirection();
             Vector dashVector = eyeVector.multiply(3);
             player.setVelocity(dashVector);
-            
-            int playerIndex = playerLives.indexOf(player.getName());
             
             dashCooldown.add(player.getName());
             
@@ -259,8 +249,69 @@ public class SuperSmashMates extends JavaPlugin implements Listener{
         
         Player player = event.getPlayer();
         
+        //Creative bypass
         if(player.getGameMode().equals(CREATIVE)) return;
         
+        //ExplosionHandler
+        if(playerHit.get(player) != null && playerHit.get(player) == true)
+        {
+            
+            if(playerHitInitialCooldown.get(player) == null || playerHitInitialCooldown.get(player) != true){
+                
+                playerHitInitialCooldown.put(player, true);
+                
+                new BukkitRunnable(){
+                    
+                    @Override
+                    public void run() {
+                        
+                        playerHitInitialCooldown.put(player, false);
+                        
+                        //check for speed as long as the confirmation is true
+                
+                        playerLocation2.put(player, player.getLocation());
+
+                        Double location1X = playerLocation1.get(player).getX();
+                        Double location1Z = playerLocation1.get(player).getZ();
+
+                        Double location2X = playerLocation2.get(player).getX();
+                        Double location2Z = playerLocation2.get(player).getZ();
+
+                        Double distanceX = Math.abs(location2X - location1X);
+                        Double distanceZ = Math.abs(location2Z - location1Z);
+
+                        Double totalDistance = Math.sqrt(Math.pow(distanceX, 2) + Math.pow(distanceZ, 2));
+
+                        if (totalDistance < 0.6) //condition to blow up
+                        {
+
+                            float explosionAlgorithm = (float) Math.pow(0.1 * player.getLevel(), 2);
+                            player.getWorld().createExplosion(player.getLocation(), explosionAlgorithm);
+
+                            getLogger().info("Explosion code running");
+
+                            playerHitCooldownConfirmation.put(player, false);
+                            playerHitInitialCooldown.put(player, false);
+                            playerHit.put(player, false);
+
+                        } else {
+
+                            getLogger().info("Too fast for explosion!");
+
+                        }
+
+                        playerLocation1.put(player, playerLocation2.get(player));
+                        
+                    }
+                    
+                }.runTaskLater(this, 3);
+                
+            }
+            
+        }
+        
+        
+        //Powerjump
         if (player.isOnGround())
         {
             
@@ -268,7 +319,7 @@ public class SuperSmashMates extends JavaPlugin implements Listener{
             
         }
         
-        if (playerGroundTouch.get(player) == true){
+        if (playerGroundTouch.get(player) != null &&playerGroundTouch.get(player) == true){
 
             player.setAllowFlight(true);
 
@@ -278,7 +329,7 @@ public class SuperSmashMates extends JavaPlugin implements Listener{
 
         }
         
-        if (playerGroundTouch.get(player) == false)
+        if (playerGroundTouch.get(player) != null && playerGroundTouch.get(player) == false)
         {
             
             Bukkit.getOnlinePlayers().stream().forEach((plyr) -> {
@@ -288,6 +339,7 @@ public class SuperSmashMates extends JavaPlugin implements Listener{
         }
         
     }
+    
     
     //Powerjump move
     @EventHandler
@@ -317,18 +369,14 @@ public class SuperSmashMates extends JavaPlugin implements Listener{
         
         Player player = event.getEntity();
         
-            if(playerLives.contains(player.getName()))
-            {
-            int playerIndex = playerLives.indexOf(player.getName());
-            int score = playerScore.get(playerIndex);
-            int newScore = score + 1;
-            playerScore.add(playerIndex, newScore);
-
-            event.setDeathMessage(player.getName() + " has fallen. Deathcount: " + playerScore.get(playerIndex));
-            
-        }
+        int newScore = playerScore.get(player) + 1;
+        playerScore.put(player, newScore);
+        
+        event.setDeathMessage(player.getName() + " has fallen. Deathcount: " + playerScore.get(player));
         
     }
+    
+    
     @EventHandler
     public void LivesLeft (PlayerRespawnEvent event){
         
@@ -377,12 +425,14 @@ public class SuperSmashMates extends JavaPlugin implements Listener{
         
     }
     
+    
     @EventHandler
     public void FoodDeny(FoodLevelChangeEvent event){
         
         event.setCancelled(true);
         
     }
+    
     
     @EventHandler
     public void HealthDeny(EntityRegainHealthEvent event){
