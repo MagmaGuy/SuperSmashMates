@@ -1,3 +1,17 @@
 name: SuperSmashMates
 main: com.magmaguy.supersmashmates.SuperSmashMates
 version: 0.1.0
+
+commands:
+    fixspawn:
+        description: Use to move a world's spawn location
+        usage: /fixspawn
+    spawn:
+        description: Teleports the player to the world's spawn location
+        usage: /spawn
+    vote:
+        description: Allows players to vote for a map
+        usage: /vote [mapName]
+    go:
+        description: Allows players to go to a predefined location
+        usage: /go [mapName]
