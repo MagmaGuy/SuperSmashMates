@@ -15,10 +15,6 @@ import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.util.Vector;
 
-/**
- *
- * @author NaN
- */
 public class KnockbackHandler implements Listener{
     
     private SuperSmashMates plugin;

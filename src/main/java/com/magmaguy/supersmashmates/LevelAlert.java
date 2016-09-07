@@ -1,8 +1,3 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package com.magmaguy.supersmashmates;
 
 import static org.bukkit.Bukkit.broadcastMessage;
@@ -13,10 +8,6 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 
-/**
- *
- * @author NaN
- */
 public class LevelAlert implements Listener{
     
     private SuperSmashMates plugin;

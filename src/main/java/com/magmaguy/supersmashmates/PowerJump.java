@@ -1,8 +1,3 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package com.magmaguy.supersmashmates;
 
 import static com.magmaguy.supersmashmates.SuperSmashMates.playerGroundTouch;
@@ -15,10 +10,6 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerToggleFlightEvent;
 
-/**
- *
- * @author NaN
- */
 public class PowerJump implements Listener{
     
     private SuperSmashMates plugin;

@@ -2,6 +2,9 @@ package com.magmaguy.supersmashmates;
 
 import static com.magmaguy.supersmashmates.SuperSmashMates.desertIsland;
 import static com.magmaguy.supersmashmates.SuperSmashMates.lastArenaLocation;
+import static com.magmaguy.supersmashmates.SuperSmashMates.mapEnum.desertIslandE;
+import static com.magmaguy.supersmashmates.SuperSmashMates.mapEnum.rockParkE;
+import static com.magmaguy.supersmashmates.SuperSmashMates.mapEnum.sunny1000E;
 import static com.magmaguy.supersmashmates.SuperSmashMates.rockPark;
 import static com.magmaguy.supersmashmates.SuperSmashMates.spawn;
 import static com.magmaguy.supersmashmates.SuperSmashMates.sunny1000;
@@ -9,6 +12,7 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import static com.magmaguy.supersmashmates.SuperSmashMates.mapVotes;
 
 public class CommandHandler implements CommandExecutor{
     
@@ -37,8 +41,7 @@ public class CommandHandler implements CommandExecutor{
                     if (args[0].equalsIgnoreCase("rockpark"))
                     {
                         
-                        player.teleport(rockPark);
-                        lastArenaLocation.put(player, rockPark);
+                        mapVotes.put(player, rockParkE);
                         return true;
                         
                     }
@@ -46,8 +49,7 @@ public class CommandHandler implements CommandExecutor{
                     if ( args[0] != null && args[0].equalsIgnoreCase("1000sunny"))
                     {
 
-                        player.teleport(sunny1000);
-                        lastArenaLocation.put(player, sunny1000);
+                        mapVotes.put(player, sunny1000E);
                         return true;
 
                     }
@@ -55,8 +57,7 @@ public class CommandHandler implements CommandExecutor{
                     if (args[0] != null && args[0].equalsIgnoreCase("desertIsland"))
                     {
                         
-                        player.teleport(desertIsland);
-                        lastArenaLocation.put(player, desertIsland);
+                        mapVotes.put(player, desertIslandE);
                         return true;
                         
                     }

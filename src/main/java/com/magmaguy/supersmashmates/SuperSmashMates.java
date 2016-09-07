@@ -7,6 +7,7 @@ import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Listener;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.scoreboard.Objective;
 import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.scoreboard.Team;
 
@@ -24,15 +25,27 @@ public class SuperSmashMates extends JavaPlugin implements Listener{
     public static HashMap<Player, Boolean> playerHitInitialCooldown = new HashMap<>();
     public static HashMap<Player, Boolean> playerHitCooldownConfirmation = new HashMap<>();
     
+    //Matchmaking
+    public static HashMap<Player, Enum> mapVotes = new HashMap<>();
+    public static boolean ongoingMatchBool = false;
+    public static enum mapEnum {rockParkE, sunny1000E, desertIslandE}
+    public static int rockParkVotes, sunny1000Votes, desertIslandVotes, voteAmount;
+    public static String winner = "";
+    public static HashMap<Player, Boolean> playerLostHashMap = new HashMap<>();
+    public static ArrayList<Player> activeMatchPlayersList = new ArrayList();
+    
     //Scoreboards
-    Team team;
-    Scoreboard board;
     public static Scoreboard levelBoard;
+    public static Team team;
+    public static Scoreboard livesScoreboard;
+    public static Objective livesObjective;
+    public static HashMap<Player, Scoreboard> testHash = new HashMap<>();
     
     //Counters
     public static HashMap<Player, Player> whoHitWho = new HashMap<>();
     public static HashMap<Player, Integer> killCounter = new HashMap<>();
     public static HashMap<Player, Integer> deathCounter = new HashMap<>();
+    public static HashMap<Player, Double> currentLives = new HashMap<>();
 
     //Maps
     public static Location spawn = new Location(Bukkit.getWorld("world"), 1002.0, 88.0, 25.0, -90, -13);
@@ -62,6 +75,7 @@ public class SuperSmashMates extends JavaPlugin implements Listener{
 
                 deathCounter.put(player, 0);
                 killCounter.put(player, 0);
+                currentLives.put(player, 3.0);
 
             }
             
@@ -80,6 +94,8 @@ public class SuperSmashMates extends JavaPlugin implements Listener{
         this.getServer().getPluginManager().registerEvents(new DashMove(this), this);
         this.getServer().getPluginManager().registerEvents(new Counters(this), this);
         this.getServer().getPluginManager().registerEvents(new RespawnHandler(this), this);
+        this.getServer().getPluginManager().registerEvents(new LivesScoreboardHandler(this), this);
+        this.getServer().getPluginManager().registerEvents(new LivesMatchmaking(this), this);
         
         
         //Register commands in other classes
